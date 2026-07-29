@@ -1,0 +1,10 @@
+node_modules/
+.env
+.DS_Store
+npm-debug.log*
+
+# Runtime data — these hold real client information and are created when the app runs.
+# They are intentionally NOT committed so client data never lands in git.
+data/clients.json
+vaults/*/
+!vaults/.gitkeep
