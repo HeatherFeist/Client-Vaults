@@ -16,8 +16,12 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..');
-const DATA_DIR = path.join(ROOT, 'data');
-const VAULTS_DIR = path.join(ROOT, 'vaults');
+// Where the writable client data lives. Defaults to the project folder, but can
+// be pointed at a persistent disk in hosting (e.g. Render) by setting DATA_ROOT.
+// This keeps `data/` and `vaults/` together so a single mounted disk covers both.
+const STORAGE_ROOT = process.env.DATA_ROOT ? path.resolve(process.env.DATA_ROOT) : ROOT;
+const DATA_DIR = path.join(STORAGE_ROOT, 'data');
+const VAULTS_DIR = path.join(STORAGE_ROOT, 'vaults');
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
 // --- small helpers -----------------------------------------------------------

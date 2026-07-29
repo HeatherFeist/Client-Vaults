@@ -131,6 +131,40 @@ access codes protect the client portal separately.)
 
 ---
 
+## Put it online (deploy to Render)
+
+Client Vaults is a small **Node.js server**, so it needs a host that runs a
+server — not a static-site host like Netlify or GitHub Pages (those only serve
+plain files and can't run the app's `/api` engine or the AI agent). The easiest
+fit is **[Render](https://render.com)**, and this repo already includes a
+`render.yaml` blueprint so it deploys in a few clicks.
+
+1. Push this project to GitHub (already done if you're reading this there).
+2. Create a free account at <https://render.com> and connect your GitHub.
+3. In Render, click **New +  →  Blueprint**, choose this repository, and click
+   **Apply**. Render reads `render.yaml` and sets everything up.
+4. When prompted, fill in two values:
+   - **`ANTHROPIC_API_KEY`** — your key from <https://console.anthropic.com/>
+     (needed only for the AI agent; the app runs without it).
+   - **`OWNER_PASSWORD`** — a password of your choice. **Set this** — otherwise
+     anyone with the link can see your clients and use the agent.
+5. Wait for the first deploy to finish, then open the URL Render gives you
+   (something like `https://client-vaults.onrender.com`).
+
+**Two things to know about the free plan:**
+
+- The app **goes to sleep after ~15 minutes** of no visitors. The next visit
+  wakes it up and takes about 50 seconds to load — after that it's fast again.
+- Saved data (clients, notes, documents, signatures) **resets on each redeploy**,
+  because the free plan has no permanent disk. That's fine for trying it out.
+
+**To keep client data permanently:** open `render.yaml`, change `plan: free` to
+`plan: starter` (a small paid tier), and uncomment the `disk:` block and the
+`DATA_ROOT` variable at the bottom of the file. That mounts a permanent disk at
+`/var/data`, and the app stores everything there so it survives redeploys.
+
+---
+
 ## Roadmap / ideas for later
 
 This is a working first version (an MVP). Natural next steps:
