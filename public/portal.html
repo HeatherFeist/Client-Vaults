@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Client Portal — Client Vaults</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Client<span>Vaults</span> · Portal</div>
+    <div class="spacer"></div>
+    <a href="/"><button class="ghost">Owner view ↗</button></a>
+  </div>
+
+  <!-- Login -->
+  <div id="login" class="portal-login">
+    <div class="brand" style="font-size:22px">Your Vault</div>
+    <div class="card">
+      <p class="muted">Enter the access code your consultant gave you.</p>
+      <input id="code" placeholder="e.g. BRAVE-OTTER-7413" autocomplete="off" />
+      <div style="margin-top:14px"><button class="primary" id="loginBtn" style="width:100%">Open my vault</button></div>
+      <p id="loginError" class="muted" style="color:var(--danger)"></p>
+    </div>
+  </div>
+
+  <!-- Vault view -->
+  <div id="vault" class="portal-wrap hidden">
+    <div class="row" style="justify-content:space-between; align-items:flex-start">
+      <div>
+        <h1 id="vName" style="margin-bottom:2px"></h1>
+        <div class="muted" id="vBiz"></div>
+      </div>
+      <button class="ghost" id="logoutBtn">Sign out</button>
+    </div>
+    <div class="portal-nav" id="portalNav"></div>
+    <div id="portalContent" class="preview"></div>
+
+    <div id="portalDocsWrap" class="hidden" style="margin-top:26px">
+      <label>Documents</label>
+      <ul id="portalDocs" class="note-list"></ul>
+    </div>
+  </div>
+
+  <!-- Signing modal -->
+  <div class="modal-backdrop" id="signModal">
+    <div class="modal">
+      <h3>Sign document</h3>
+      <p class="muted" style="margin-top:0">You are signing: <b id="signDocName"></b></p>
+      <label>Type your full legal name *</label>
+      <input id="signName" placeholder="e.g. Robert Smith" autocomplete="name" />
+      <label>Draw your signature</label>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <canvas id="sigPad" width="400" height="140" style="width:100%;height:140px;touch-action:none;display:block"></canvas>
+      </div>
+      <div class="row" style="justify-content:space-between;margin-top:6px">
+        <button class="ghost" id="sigClear" style="padding:4px 10px">Clear</button>
+        <span class="muted" style="font-size:12px">Draw with your mouse or finger</span>
+      </div>
+      <label style="text-transform:none;letter-spacing:0;display:flex;gap:8px;align-items:flex-start;margin-top:14px;color:var(--text)">
+        <input type="checkbox" id="signAgree" style="width:auto;margin-top:3px" />
+        <span style="font-size:13px">I agree that this electronic signature is the legal equivalent of my handwritten signature and that I accept this document.</span>
+      </label>
+      <div class="actions">
+        <button class="ghost" id="signCancel">Cancel</button>
+        <button class="primary" id="signSubmit">Sign &amp; accept</button>
+      </div>
+      <p id="signError" class="muted" style="color:var(--danger)"></p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/portal.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Client Vaults</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Client<span>Vaults</span></div>
+    <div class="spacer"></div>
+    <div id="agentStatus" class="status"><span class="dot"></span><span class="txt">checking…</span></div>
+    <a href="/portal.html"><button class="ghost">Client portal ↗</button></a>
+  </div>
+
+  <!-- Owner password gate (only shown if OWNER_PASSWORD is set on the server) -->
+  <div id="gate" class="portal-login hidden">
+    <div class="brand" style="font-size:22px">Client<span>Vaults</span></div>
+    <div class="card">
+      <p class="muted">Enter the owner password to manage your clients.</p>
+      <input id="ownerPassword" type="password" placeholder="Owner password" />
+      <div style="margin-top:14px"><button class="primary" id="unlockBtn" style="width:100%">Unlock</button></div>
+      <p id="gateError" class="muted" style="color:var(--danger)"></p>
+    </div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="row" style="justify-content:space-between">
+        <h2>Clients</h2>
+        <button class="primary" id="addClientBtn" style="padding:5px 10px">+ Add</button>
+      </div>
+      <ul id="clientList" class="client-list"></ul>
+      <p id="noClients" class="muted hidden" style="font-size:13px">No clients yet. Click <b>+ Add</b> or ask the AI agent to create one.</p>
+    </aside>
+
+    <main class="main" id="main">
+      <div class="empty" id="emptyState">
+        <h1>Welcome 👋</h1>
+        <p>Select a client on the left, add your first client, or use the AI agent below to create one and build their lead-gen plan automatically.</p>
+        <div class="agent" style="text-align:left; max-width:640px; margin:24px auto 0">
+          <div class="agent-head">
+            <div>
+              <div class="title">✨ AI Agent</div>
+              <div class="sub">Create clients and generate content in plain English</div>
+            </div>
+          </div>
+          <div class="agent-body">
+            <textarea id="globalAgentPrompt" rows="3" placeholder="e.g. Add a new client, Bob's Bakery — a local bakery in Denver — and build them a 30-day lead-generation plan and funnel content."></textarea>
+            <div class="row" style="justify-content:flex-end; margin-top:10px">
+              <button class="primary" id="globalAgentRun">Run agent</button>
+            </div>
+            <div id="globalAgentOutput" class="agent-output hidden"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client detail (shown when a client is selected) -->
+      <div id="clientView" class="hidden">
+        <div class="client-head">
+          <div style="flex:1">
+            <h1 id="cvName"></h1>
+            <div class="biz" id="cvBiz"></div>
+          </div>
+          <div style="text-align:right">
+            <label style="margin-top:0">Client access code</label>
+            <div class="row" style="justify-content:flex-end">
+              <span class="code-chip" id="cvCode"></span>
+              <button class="ghost" id="copyCodeBtn" title="Copy code">Copy</button>
+            </div>
+          </div>
+          <button class="danger" id="deleteClientBtn" title="Delete client">Delete</button>
+        </div>
+
+        <div class="notes-layout">
+          <div>
+            <div class="row" style="justify-content:space-between">
+              <label style="margin:0">Notes</label>
+              <button class="ghost" id="newNoteBtn" style="padding:4px 9px">+ Note</button>
+            </div>
+            <ul id="noteList" class="note-list"></ul>
+          </div>
+
+          <div class="editor">
+            <div class="editor-head">
+              <span class="fname" id="noteName"></span>
+              <button class="ghost" id="togglePreviewBtn">Preview</button>
+              <button class="primary" id="saveNoteBtn">Save</button>
+              <button class="danger ghost" id="deleteNoteBtn">Delete</button>
+              <span class="saved-flash hidden" id="savedFlash">Saved ✓</span>
+            </div>
+            <textarea id="noteEditor" spellcheck="true" placeholder="Select a note to edit, or create a new one."></textarea>
+            <div id="notePreview" class="preview hidden"></div>
+          </div>
+        </div>
+
+        <!-- Documents (estimates, agreements, files) -->
+        <div style="margin-top:26px">
+          <div class="row" style="justify-content:space-between; align-items:center">
+            <label style="margin:0">Documents — estimates, agreements &amp; files</label>
+            <div class="row">
+              <input type="file" id="docFileInput" class="hidden" />
+              <button class="ghost" id="uploadDocBtn">⬆ Upload document</button>
+            </div>
+          </div>
+          <ul id="docList" class="note-list" style="margin-top:10px"></ul>
+          <p id="noDocs" class="muted hidden" style="font-size:13px">No documents yet. Upload estimates, signed agreements, or any important files here — your client can view them from their portal.</p>
+        </div>
+
+        <!-- Per-client AI agent -->
+        <div class="agent">
+          <div class="agent-head">
+            <div style="flex:1">
+              <div class="title">✨ AI Agent — <span id="agentClientName"></span></div>
+              <div class="sub">Ask it to build plans and content. Changes are saved straight into this vault.</div>
+            </div>
+          </div>
+          <div class="agent-body">
+            <div class="suggestions" id="agentSuggestions">
+              <span class="chip" data-prompt="Build a detailed 30-day lead-generation plan for this client and save it to Lead Generation Plan.md.">30-day lead-gen plan</span>
+              <span class="chip" data-prompt="Write full funnel content (awareness, nurture, conversion) for this client into Funnel Content.md, with specific post and email drafts.">Funnel content</span>
+              <span class="chip" data-prompt="Draft a 5-email welcome sequence for this client and save it to a new note called Email Sequence.md.">Email sequence</span>
+              <span class="chip" data-prompt="Improve and flesh out this client's Profile.md with a stronger positioning statement and ideal-customer description.">Sharpen profile</span>
+            </div>
+            <textarea id="agentPrompt" rows="3" placeholder="Ask the agent to do something for this client…"></textarea>
+            <div class="row" style="justify-content:flex-end; margin-top:10px">
+              <button class="primary" id="agentRun">Run agent</button>
+            </div>
+            <div id="agentOutput" class="agent-output hidden"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add-client modal -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal">
+      <h3>Add a client</h3>
+      <p class="muted" style="margin-top:0">This creates their vault with starter notes and a private access code.</p>
+      <label>Name *</label>
+      <input id="mName" placeholder="e.g. Bob's Bakery" />
+      <label>Business (one line)</label>
+      <input id="mBiz" placeholder="e.g. Neighborhood bakery in Denver" />
+      <div class="row">
+        <div style="flex:1"><label>Contact email</label><input id="mEmail" placeholder="optional" /></div>
+        <div style="flex:1"><label>Contact phone</label><input id="mPhone" placeholder="optional" /></div>
+      </div>
+      <label>Notes to seed the profile</label>
+      <textarea id="mNotes" rows="2" placeholder="optional — anything you know about them"></textarea>
+      <div class="actions">
+        <button class="ghost" id="cancelAdd">Cancel</button>
+        <button class="primary" id="confirmAdd">Create client</button>
+      </div>
+      <p id="addError" class="muted" style="color:var(--danger)"></p>
+    </div>
+  </div>
+
+  <!-- View-signature modal -->
+  <div class="modal-backdrop" id="sigModal">
+    <div class="modal">
+      <h3>Signature</h3>
+      <p class="muted" style="margin-top:0">Document: <span id="sigDocName" style="font-family:var(--mono)"></span></p>
+      <img id="sigImage" alt="signature" style="max-width:100%;background:#fff;border-radius:8px;border:1px solid var(--border)" />
+      <p id="sigMeta" style="font-size:13px;margin-top:14px"></p>
+      <div class="actions"><button class="primary" id="sigClose">Close</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/dashboard.js"></script>
+</body>
+</html>
