@@ -2,14 +2,18 @@
 # Docs: https://render.com/docs/blueprint-spec
 #
 # In Render: New +  →  Blueprint  →  connect this repo. Render reads this file
-# and creates the web service below. You'll be prompted for the two secret
-# values (your Anthropic API key and an owner password) during setup.
+# and creates the web service below. You'll be prompted for the secret values
+# (Supabase connection, Anthropic API key, owner password) during setup.
+#
+# Storage is handled by Supabase (a hosted database), so client data persists
+# across deploys — no disk needed. Run supabase/schema.sql in your Supabase
+# project first (see README).
 
 services:
   - type: web
     name: client-vaults
     runtime: node
-    plan: free            # free tier: app sleeps after ~15 min idle; no persistent disk
+    plan: free            # free tier: app sleeps after ~15 min idle
     branch: main          # deploy from the main branch
     buildCommand: npm install
     startCommand: npm start
@@ -20,30 +24,24 @@ services:
       - key: NODE_VERSION
         value: "20"
 
-      # Your Anthropic API key, for the AI agent. You'll paste it in during setup.
-      # The app still runs without it — the agent is simply disabled.
+      # --- Supabase (storage) ---
+      # From your Supabase project: Project Settings → API.
+      - key: SUPABASE_URL
+        sync: false
+      # The service_role key — a secret with full access. Server-side only.
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # --- AI agent ---
+      # Your Anthropic API key. The app still runs without it — the agent is
+      # simply disabled.
       - key: ANTHROPIC_API_KEY
         sync: false
 
+      # --- Owner protection ---
       # A password that protects the owner dashboard once it's public. Strongly
       # recommended: without it, anyone with the URL can see every client and use
       # the AI agent (which spends your API credits). Client access codes protect
       # the client portal separately.
       - key: OWNER_PASSWORD
         sync: false
-
-    # --- Persistent storage (optional upgrade) -------------------------------
-    # The free plan has NO persistent disk, so saved clients/notes/documents
-    # reset whenever the app redeploys or restarts — fine for trying it out.
-    # To keep data permanently, switch `plan` above to `starter` (paid) and
-    # uncomment the two blocks below. The disk mounts at /var/data, and
-    # DATA_ROOT tells the app to store everything there instead.
-    #
-    # disk:
-    #   name: client-vaults-data
-    #   mountPath: /var/data
-    #   sizeGB: 1
-    #
-    # (add this to the envVars list above:)
-    #   - key: DATA_ROOT
-    #     value: /var/data

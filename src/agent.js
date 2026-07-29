@@ -113,40 +113,43 @@ const TOOLS = [
 ];
 
 // Run a single tool call and return a plain-object result plus a human summary.
-function runTool(name, input, { restrictClientId } = {}) {
+async function runTool(name, input, { restrictClientId } = {}) {
   // When invoked from a specific client's page, keep the agent scoped to that client.
   if (restrictClientId && input && input.clientId && input.clientId !== restrictClientId) {
     return { error: `This agent is scoped to client "${restrictClientId}" and cannot touch other clients.` };
   }
 
   switch (name) {
-    case 'list_clients':
-      return { clients: store.listClients().map((c) => ({ id: c.id, name: c.name, business: c.business })) };
+    case 'list_clients': {
+      const clients = await store.listClients();
+      return { clients: clients.map((c) => ({ id: c.id, name: c.name, business: c.business })) };
+    }
 
     case 'create_client': {
-      const c = store.createClient(input);
+      const c = await store.createClient(input);
       return { id: c.id, name: c.name, accessCode: c.accessCode };
     }
 
     case 'list_notes': {
-      if (!store.getClient(input.clientId)) return { error: 'No such client.' };
-      return { notes: store.listNotes(input.clientId).map((n) => n.name) };
+      if (!(await store.getClient(input.clientId))) return { error: 'No such client.' };
+      const notes = await store.listNotes(input.clientId);
+      return { notes: notes.map((n) => n.name) };
     }
 
     case 'read_note': {
-      const note = store.readNote(input.clientId, input.filename);
+      const note = await store.readNote(input.clientId, input.filename);
       return note ? { content: note.content } : { error: 'Note not found.' };
     }
 
     case 'write_note': {
-      if (!store.getClient(input.clientId)) return { error: 'No such client.' };
-      store.writeNote(input.clientId, input.filename, input.content);
+      if (!(await store.getClient(input.clientId))) return { error: 'No such client.' };
+      await store.writeNote(input.clientId, input.filename, input.content);
       return { ok: true, wrote: input.filename };
     }
 
     case 'append_note': {
-      if (!store.getClient(input.clientId)) return { error: 'No such client.' };
-      store.appendNote(input.clientId, input.filename, input.content);
+      if (!(await store.getClient(input.clientId))) return { error: 'No such client.' };
+      await store.appendNote(input.clientId, input.filename, input.content);
       return { ok: true, appended: input.filename };
     }
 
@@ -188,7 +191,7 @@ async function runAgent({ prompt, clientId }) {
 
   let contextLine = '';
   if (clientId) {
-    const c = store.getClient(clientId);
+    const c = await store.getClient(clientId);
     if (c) {
       contextLine =
         `\n\nThe owner is currently viewing the vault for client "${c.name}" (id: ${c.id}). ` +
@@ -225,7 +228,7 @@ async function runAgent({ prompt, clientId }) {
       if (block.type !== 'tool_use') continue;
       let result;
       try {
-        result = runTool(block.name, block.input || {}, { restrictClientId: clientId });
+        result = await runTool(block.name, block.input || {}, { restrictClientId: clientId });
       } catch (e) {
         result = { error: e.message };
       }

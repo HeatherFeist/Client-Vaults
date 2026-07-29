@@ -29,17 +29,21 @@ Each client's vault starts with four notes and grows from there:
 | `Funnel Content.md` | Awareness → nurture → conversion content |
 | `Notes.md` | Meeting notes, ideas, reminders |
 
-Notes are plain **Markdown files** stored in the `vaults/` folder, so you can even
-open that folder directly in [Obsidian](https://obsidian.md) and everything works.
+Notes are written and kept as plain **Markdown**, stored in your **Supabase**
+database (see [Where your data lives](#where-your-data-lives) below). The
+[Obsidian](https://obsidian.md)-style feel — a per-client vault of linked
+Markdown notes — is the way you work with them here; if you also want to open
+your notes inside the Obsidian app itself, see the note in that section.
 
-Documents (PDFs, Word docs, images, spreadsheets, etc.) live alongside each vault
-and can be signed by the client from their portal.
+Documents (PDFs, Word docs, images, spreadsheets, etc.) are stored per client in
+Supabase Storage and can be signed by the client from their portal.
 
 ---
 
 ## Getting started
 
-You'll need [Node.js](https://nodejs.org) version 20 or newer installed.
+You'll need [Node.js](https://nodejs.org) version 20 or newer, and a free
+**Supabase** project for storage (setup below — about 5 minutes).
 
 ```bash
 # 1. Install the app's dependencies
@@ -47,7 +51,8 @@ npm install
 
 # 2. Set up your settings file
 cp .env.example .env
-#    Then open .env and paste in your Anthropic API key (for the AI agent).
+#    Then open .env and fill in your Supabase details (required — see
+#    "Set up storage" below) and your Anthropic API key (for the AI agent).
 
 # 3. Start the app
 npm start
@@ -57,6 +62,28 @@ Then open **http://localhost:3000** in your browser.
 
 - **Owner dashboard** (you): http://localhost:3000/
 - **Client portal** (your clients): http://localhost:3000/portal.html
+
+---
+
+## Set up storage (Supabase)
+
+Client Vaults keeps your clients, notes, documents, and signatures in
+[Supabase](https://supabase.com) (a hosted database with file storage). It has a
+free tier that's plenty for this.
+
+1. Create a free account and a **new project** at <https://supabase.com>.
+2. In your project, open **SQL Editor → New query**, paste in the contents of
+   [`supabase/schema.sql`](supabase/schema.sql) from this repo, and click **Run**.
+   That creates the tables and a private `documents` storage bucket.
+3. Open **Project Settings → API** and copy two values into your `.env`:
+   ```
+   SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+   Use the **`service_role`** key (not the `anon` key). It's a secret with full
+   access — keep it server-side only, never in the browser or in git. The
+   `.gitignore` already excludes your `.env` file.
+4. Restart the app. The startup log will show `Storage: Supabase (connected)`.
 
 ---
 
@@ -102,18 +129,26 @@ document list in the dashboard.
 
 ## Where your data lives
 
-Everything is stored as ordinary files on your computer:
+Everything is stored in your **Supabase** project:
 
 ```
-data/clients.json        ← the list of clients + their access codes
-vaults/<client>/*.md     ← that client's notes (Markdown, Obsidian-compatible)
-vaults/<client>/documents/   ← that client's uploaded files
-vaults/<client>/signatures.json  ← e-signature records
+clients      (table)    ← the list of clients + their access codes
+notes        (table)    ← each client's notes, as Markdown (one row per note)
+documents    (table)    ← metadata for each uploaded file
+signatures   (table)    ← e-signature records
+Storage bucket "documents"  ← the actual document files
 ```
 
-These files hold real client information, so they are **deliberately not committed
-to git** (see `.gitignore`). Back up the `data/` and `vaults/` folders however you
-normally back up your files.
+Because it's hosted, your data **persists across restarts and redeploys**, and
+Supabase handles backups on its side. Nothing sensitive is stored in this repo
+or in git.
+
+**Want to open your notes in the Obsidian app?** Since notes now live in the
+database rather than as loose files, they aren't a folder you can point Obsidian
+at directly. Two options if you want that: (a) run a small export that writes the
+`notes` rows out to `.md` files in an Obsidian vault folder, or (b) use Claude
+inside Obsidian via a community plugin (e.g. *Copilot for Obsidian*). Ask and we
+can add an export command.
 
 ---
 
@@ -139,29 +174,29 @@ plain files and can't run the app's `/api` engine or the AI agent). The easiest
 fit is **[Render](https://render.com)**, and this repo already includes a
 `render.yaml` blueprint so it deploys in a few clicks.
 
-1. Push this project to GitHub (already done if you're reading this there).
-2. Create a free account at <https://render.com> and connect your GitHub.
-3. In Render, click **New +  →  Blueprint**, choose this repository, and click
+1. Set up your **Supabase** project first (see [Set up storage](#set-up-storage-supabase)
+   above) — you'll need its URL and service_role key.
+2. Push this project to GitHub (already done if you're reading this there).
+3. Create a free account at <https://render.com> and connect your GitHub.
+4. In Render, click **New +  →  Blueprint**, choose this repository, and click
    **Apply**. Render reads `render.yaml` and sets everything up.
-4. When prompted, fill in two values:
+5. When prompted, fill in the secret values:
+   - **`SUPABASE_URL`** and **`SUPABASE_SERVICE_ROLE_KEY`** — from your Supabase
+     project (Project Settings → API). Required for storage.
    - **`ANTHROPIC_API_KEY`** — your key from <https://console.anthropic.com/>
      (needed only for the AI agent; the app runs without it).
    - **`OWNER_PASSWORD`** — a password of your choice. **Set this** — otherwise
      anyone with the link can see your clients and use the agent.
-5. Wait for the first deploy to finish, then open the URL Render gives you
+6. Wait for the first deploy to finish, then open the URL Render gives you
    (something like `https://client-vaults.onrender.com`).
 
-**Two things to know about the free plan:**
+Because storage lives in Supabase, your client data **persists across deploys** —
+nothing resets when Render restarts or redeploys the app.
 
-- The app **goes to sleep after ~15 minutes** of no visitors. The next visit
-  wakes it up and takes about 50 seconds to load — after that it's fast again.
-- Saved data (clients, notes, documents, signatures) **resets on each redeploy**,
-  because the free plan has no permanent disk. That's fine for trying it out.
-
-**To keep client data permanently:** open `render.yaml`, change `plan: free` to
-`plan: starter` (a small paid tier), and uncomment the `disk:` block and the
-`DATA_ROOT` variable at the bottom of the file. That mounts a permanent disk at
-`/var/data`, and the app stores everything there so it survives redeploys.
+**One thing to know about the free plan:** the app **goes to sleep after ~15
+minutes** of no visitors. The next visit wakes it up and takes about 50 seconds
+to load — after that it's fast again. Upgrading to Render's paid **Starter** plan
+(change `plan: free` to `plan: starter` in `render.yaml`) keeps it always on.
 
 ---
 
@@ -169,8 +204,6 @@ fit is **[Render](https://render.com)**, and this repo already includes a
 
 This is a working first version (an MVP). Natural next steps:
 
-- **Host it online** so you and your clients can reach it from anywhere (e.g. Render,
-  Railway, or a small VPS). This would also move storage to a hosted database.
 - **Stronger sign-in** for you (email + password, or single sign-on).
 - **Notarized-grade e-signatures** by integrating a dedicated provider (e.g. DocuSign)
   when you need legally certified signing with a formal audit certificate.
@@ -181,8 +214,9 @@ This is a working first version (an MVP). Natural next steps:
 
 ## Tech notes (for a developer)
 
-- Node.js + Express server (`src/server.js`)
-- Filesystem storage layer (`src/store.js`) — no database required
+- Node.js + Express 5 server (`src/server.js`)
+- Supabase storage layer (`src/store.js`, client in `src/supabase.js`) —
+  Postgres tables + a Storage bucket; schema in `supabase/schema.sql`
 - AI agent via the Anthropic SDK with tool-use (`src/agent.js`)
 - Vanilla HTML/CSS/JS front end (`public/`)
 - File uploads via `multer`; Markdown rendered with `marked`
